@@ -1,0 +1,252 @@
+Here are the tasks outlined for **Slab 2 [For Intermediate Level]** with detailed guidance on how to execute each of them using Python, Flask/Django, and other relevant libraries:
+
+---
+
+### 1. **Voice-Activated Personal Assistant**
+
+   - **Objective**: Build a voice-activated personal assistant that can perform tasks like setting reminders, checking the weather, and reading the news, using speech recognition and text-to-speech technologies.
+
+   **Steps**:
+   - Install the required libraries:
+     ```bash
+     pip install pyttsx3 speechrecognition pyaudio requests
+     ```
+
+   - **Code Outline**:
+     ```python
+     import pyttsx3
+     import speech_recognition as sr
+     import requests
+     import datetime
+
+     # Initialize text-to-speech engine
+     engine = pyttsx3.init()
+
+     def speak(text):
+         engine.say(text)
+         engine.runAndWait()
+
+     def listen():
+         recognizer = sr.Recognizer()
+         with sr.Microphone() as source:
+             print("Listening...")
+             audio = recognizer.listen(source)
+             query = ""
+             try:
+                 query = recognizer.recognize_google(audio)
+                 print(f"User said: {query}")
+             except Exception as e:
+                 print("Sorry, I did not hear that.")
+             return query.lower()
+
+     def check_weather(city):
+         api_key = "your_openweathermap_api_key"
+         base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+         response = requests.get(base_url)
+         weather_data = response.json()
+         if weather_data["cod"] == 200:
+             main_data = weather_data["main"]
+             weather_description = weather_data["weather"][0]["description"]
+             temperature = main_data["temp"] - 273.15  # Convert from Kelvin to Celsius
+             humidity = main_data["humidity"]
+             speak(f"The temperature in {city} is {temperature:.2f}°C with {weather_description} and humidity of {humidity}%.")
+
+     def set_reminder():
+         speak("What reminder would you like to set?")
+         reminder = listen()
+         speak(f"Reminder set: {reminder}. I will remind you later.")
+
+     # Main program loop
+     def start_assistant():
+         speak("Hello, I am your assistant. How can I help you today?")
+         while True:
+             query = listen()
+
+             if "weather" in query:
+                 speak("Please tell me the city.")
+                 city = listen()
+                 check_weather(city)
+
+             elif "reminder" in query:
+                 set_reminder()
+
+             elif "exit" in query or "quit" in query:
+                 speak("Goodbye!")
+                 break
+
+             else:
+                 speak("Sorry, I didn't understand. Please try again.")
+
+     # Start the voice assistant
+     start_assistant()
+     ```
+
+   **Explanation**:
+   - The assistant listens for user input via the microphone, processes the speech, and performs actions like checking the weather or setting a reminder.
+   - **Text-to-speech** (via `pyttsx3`) provides verbal responses, while **speech recognition** (via `speech_recognition`) allows the assistant to understand user commands.
+   - You can enhance this assistant by adding additional functionalities like reading news, setting timers, etc.
+
+---
+
+### 2. **Web Application for Sentiment Analysis Using Flask/Django**
+
+   - **Objective**: Develop a web application using Flask or Django that performs sentiment analysis on user-entered text. The app should classify the text as positive, negative, or neutral using **TextBlob** and display polarity and subjectivity scores.
+
+   **Steps**:
+   - Install the required libraries:
+     ```bash
+     pip install flask textblob
+     ```
+
+   - **Flask Application Code**:
+     ```python
+     from flask import Flask, render_template, request
+     from textblob import TextBlob
+
+     app = Flask(__name__)
+
+     @app.route("/", methods=["GET", "POST"])
+     def index():
+         sentiment = ""
+         polarity = 0
+         subjectivity = 0
+
+         if request.method == "POST":
+             user_text = request.form["text"]
+             blob = TextBlob(user_text)
+             polarity = blob.sentiment.polarity
+             subjectivity = blob.sentiment.subjectivity
+
+             if polarity > 0:
+                 sentiment = "Positive"
+             elif polarity < 0:
+                 sentiment = "Negative"
+             else:
+                 sentiment = "Neutral"
+
+         return render_template("index.html", sentiment=sentiment, polarity=polarity, subjectivity=subjectivity)
+
+     if __name__ == "__main__":
+         app.run(debug=True)
+     ```
+
+   - **HTML Template (index.html)**:
+     ```html
+     <!DOCTYPE html>
+     <html lang="en">
+     <head>
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <title>Sentiment Analysis</title>
+     </head>
+     <body>
+         <h1>Sentiment Analysis Tool</h1>
+         <form method="POST">
+             <textarea name="text" rows="4" cols="50" placeholder="Enter text here..."></textarea><br>
+             <button type="submit">Analyze Sentiment</button>
+         </form>
+
+         {% if sentiment %}
+         <h2>Sentiment: {{ sentiment }}</h2>
+         <p>Polarity: {{ polarity }}</p>
+         <p>Subjectivity: {{ subjectivity }}</p>
+         {% endif %}
+     </body>
+     </html>
+     ```
+
+   **Explanation**:
+   - This Flask application takes user input through a form, processes the text using **TextBlob**, and classifies the sentiment (positive, negative, or neutral) based on polarity.
+   - The **polarity** score indicates sentiment (positive or negative), and **subjectivity** indicates how subjective the text is.
+   - The web interface is simple, allowing users to input text and view the results of the analysis.
+
+---
+
+### 3. **Weather Dashboard Using Flask/Django**
+
+   - **Objective**: Develop a web application using Flask or Django that allows users to enter a city name and display real-time weather details (temperature, humidity, conditions) fetched from a weather API like OpenWeatherMap.
+
+   **Steps**:
+   - Install the required libraries:
+     ```bash
+     pip install flask requests
+     ```
+
+   - **Flask Application Code**:
+     ```python
+     from flask import Flask, render_template, request
+     import requests
+
+     app = Flask(__name__)
+
+     @app.route("/", methods=["GET", "POST"])
+     def index():
+         city = ""
+         weather_data = {}
+         if request.method == "POST":
+             city = request.form["city"]
+             api_key = "your_openweathermap_api_key"
+             base_url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}"
+
+             response = requests.get(base_url)
+             data = response.json()
+
+             if data["cod"] == 200:
+                 main = data["main"]
+                 weather = data["weather"][0]
+                 weather_data = {
+                     "temperature": main["temp"] - 273.15,  # Convert from Kelvin to Celsius
+                     "humidity": main["humidity"],
+                     "description": weather["description"]
+                 }
+             else:
+                 weather_data = {"error": "City not found"}
+
+         return render_template("index.html", city=city, weather_data=weather_data)
+
+     if __name__ == "__main__":
+         app.run(debug=True)
+     ```
+
+   - **HTML Template (index.html)**:
+     ```html
+     <!DOCTYPE html>
+     <html lang="en">
+     <head>
+         <meta charset="UTF-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <title>Weather Dashboard</title>
+     </head>
+     <body>
+         <h1>Weather Dashboard</h1>
+         <form method="POST">
+             <input type="text" name="city" placeholder="Enter city name" required><br>
+             <button type="submit">Get Weather</button>
+         </form>
+
+         {% if weather_data %}
+         {% if weather_data.error %}
+         <p>{{ weather_data.error }}</p>
+         {% else %}
+         <h2>Weather in {{ city }}:</h2>
+         <p>Temperature: {{ weather_data.temperature }}°C</p>
+         <p>Humidity: {{ weather_data.humidity }}%</p>
+         <p>Description: {{ weather_data.description }}</p>
+         {% endif %}
+         {% endif %}
+     </body>
+     </html>
+     ```
+
+   **Explanation**:
+   - The user enters a city name, and the app fetches real-time weather data from the **OpenWeatherMap API**.
+   - The weather details like temperature, humidity, and description are displayed, and if the city is not found, an error message is shown.
+
+---
+
+### Key Takeaways:
+- **Voice-Activated Personal Assistant**: You get to work with speech recognition and text-to-speech technologies to build a useful tool.
+- **Sentiment Analysis Web Application**: Develop a web application that uses **TextBlob** for text processing and displays sentiment analysis results.
+- **Weather Dashboard**: Learn how to fetch and display real-time data from an external API using **Flask** or **Django**.
+
+These intermediate-level projects will enhance your skills in web development, natural language processing, and integrating third-party APIs.
